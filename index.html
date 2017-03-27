@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>播放页面</title>
+    <meta charset="utf-8">
+    <style>
+        /*播放器样式设置*/
+        .mod-ckplay{
+            position:relative;z-index: 100;width:600px;height:400px;float: left;border:1px solid #ccc;
+        }
+       .mod-tourist-tips.active {
+            height: 80px;
+        }
+       .mod-tourist-tips {
+            position: absolute;
+            z-index:150;
+            left: 9px;
+            top: 9px;
+            width: 871px;
+            height: 0;
+            overflow: hidden;
+            -webkit-transition: height .6s linear;
+            transition: height .6s linear;
+        }
+        .mask{
+            opacity: .7;
+            filter: alpha(opacity=70);
+            background-color: #000;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 1;
+        }
+        .tips-panle{
+            width: 871px;
+            height: 60px;
+            position: relative;
+            z-index: 2;
+        }
+        .txt {
+            font-size: 16px;
+            color: #fff;
+            text-align: center;
+            height: 24px;
+            line-height: 24px;
+        }
+        .btn-box .btn-login {
+            display: block;
+            margin: 10px auto 0;
+            width: 80px;
+            height: 24px;
+            line-height: 24px;
+            font-size: 14px;
+            background-color: #ff1c41;
+            color: #fff;
+            border-radius: 2px;
+            text-align: center;
+        }
+       .btn-close {
+            position: absolute;
+            right: 0;
+            top: 0;
+           background:#ff0000;
+            font-size: 30px;
+            color: #fff;
+           width:30px;
+           height:30px;
+        }
+    </style>
+    <script src="jquery.js"></script>
+    <script src="emitter.js"></script>
+    <script src="ckplayer/6.8.0/ckplayer.js"></script>
+    <script src="player.js"></script>
+</head>
+
+<body>
+<div id="jModeVideoBox">
+    <div id="jAudio" class="mod-ckplay"></div>
+</div>
+
+  <script type="text/javascript">
+      var hasLogin = false;//判断是否登录
+      var touristTips = new TouristTips();
+    var player = new Player('#jAudio', {
+        swfPlayer: './ckplayer/6.8.0/ckplayer.swf',
+        embed: {
+            width: '871',
+            height: '655'
+        },
+        flash: {
+            p: 1,
+            i:'', //初始图片地址
+            g: '' || 0,
+            f: 'ckplayer/6.8.0/m3u8.swf', //必填 请别跨域 要播放文件的路径
+            a: 'http://n03.wbc.zhongzhihui.com/cldata/youyong/courseware/10091/2016/12/2016-12-16/515921b34a3d0c9d195a7249e9c12bbf/t/playlist.m3u8' //必填 请别跨域 如果要调用m3u8格式的文件，必须要用到的播放插件【调用时的参数，只有当s>0的时候有效】
+        }
+    });
+
+    var isSendPlayTime = true;
+    //如果播放就加载提示
+    player.on('play',function(){
+        if(hasLogin){
+            touristTips.hide();
+        }else{
+            touristTips.show();
+        }
+    });
+    // player.play()
+    //监听当前播放器进度
+    player.on('time', function(seconds) {
+        if (hasLogin){// 未登录用户不记录学习记录
+            if (isSendPlayTime && seconds > 0) {
+                isSendPlayTime = false;
+                var _params = $.extend(true, {}, $PAGE_DATA['setPlayTimeParams'], {
+                    playTime: seconds,
+                    duration: player.getTotalTime(),
+                    courseId: sourceId,
+                    lessonId: lessonId
+                });
+                io.get($PAGE_DATA['setPlayTime'], _params, function(data) {
+                    isSendPlayTime = true;
+                }, function(data) {
+                    isSendPlayTime = true;
+                });
+            }
+        }
+        if (seconds >= 60){
+            if (!hasLogin){
+                setTimeout(function(){
+                    player.pause();
+                },500);
+                player.jump(0);
+                touristTips.show();
+            }
+        }
+    });
+    //视频播放结束
+    var jArrowR = $('#jArrowR');
+    player.on('ended',function(){
+        var newTab;
+        var href = jArrowR.attr('href');
+        if(examId != ''){
+            box.confirm('是否进入考试页面？',function() {
+                //box.loadUrl($PAGE_DATA['examUrl'], {
+                //    title: '考试',
+                //    className: 'ui-test-box',
+                //    fixed: true,
+                //    width: $(window).width(),
+                //    height: $(window).height()
+                //});
+                newTab = window.open('about:blank');
+                newTab.location.href = $PAGE_DATA['examUrl'];
+            },
+            function() {
+                if(href != '' && href){
+                    window.location.href = href;
+                }
+            }, this);
+        }else {
+            if(href != '' && href){
+                window.location.href = href;
+            }
+        }
+    });
+    //====================播放器 end
+  </script>
+</body>
+
+</html>
+
